@@ -24,13 +24,13 @@
             <div class="collapse navbar-collapse" id="navbarSupportedContent">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                     <li class="nav-item">
-                        <a class="nav-link active" aria-current="page" href="{{ url_for('notes.index') }}">Home</a>
+                        <a class="nav-link active" aria-current="page" href="{{ url_for('reminder.index') }}">Home</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link active" href="{{ url_for('notes.notes') }}">Notes</a>
+                        <a class="nav-link active" href="{{ url_for('reminder.calendar') }}">Calendar</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link active" href="{{ url_for('notes.create_note') }}">Add Note</a>
+                        <a class="nav-link active" href="{{ url_for('reminder.create_reminder') }}">New Reminder</a>
                     </li>
                 </ul>
                 <div class="d-flex">

@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="row p-4">
+        <div class="col-12 text-center h4 pb-2">{% block title %}My Reminders{% endblock %}</div>
+        {% if reminders %}
+        <div class="col-12">
+        	<div class="row h5 py-2">Upcoming Reminder</div>
+            <div class="row">
+            {% for item in reminders %}
+                <div class="col-md-4 col-12 py-2">
+                    <div class="card">
+                      <div class="row g-0">
+                        <div class="col-md-12">
+                          <div class="card-body">
+                            <h5 class="card-title">{{item.name}}</h5>
+                            <p class="card-text">{{item.description|truncate(50,true,'...')}}</p>
+                            <p class="card-text"><small class="text-muted">Event Date: {{item.reminder_date.strftime('%A %B, %d %Y')}}</small></p>
+                            <a class="stretched-link" href="{{url_for('reminder.reminder', id=item.id)}}"></a>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                </div>
+            {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        <div class="col-12">
+            <div class="row pt-4">    
+                <div class="col-sm-6 py-2">
+                    <div class="card border-primary">
+                        <a class="text-decoration-none" href="{{ url_for('reminder.calendar') }}"> 
+                            <div class="card-body text-center">
+                                <h5 class="card-title"><i class="fas fa-calendar"></i> Calendar</h5>
+                            </div>
+                        </a>
+                    </div>            
+                </div>  
+                <div class="col-sm-6 py-2">
+                    <div class="card border-primary">
+                        <a class="text-decoration-none" href="{{ url_for('reminder.create_reminder') }}"> 
+                            <div class="card-body text-center">
+                                <h5 class="card-title"><i class="fas fa-list"></i> Add Reminder</h5>
+                            </div>
+                        </a>
+                    </div>            
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

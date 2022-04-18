@@ -15,6 +15,8 @@ def register():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
+        email = request.form.get('email', None)
+        phone_number = request.form.get('phone_number', None)
         db = get_db()
         error = None
 
@@ -26,8 +28,8 @@ def register():
         if error is None:
             try:
                 db.execute(
-                    "INSERT INTO user (username, password) VALUES (?, ?)",
-                    (username, generate_password_hash(password)),
+                    "INSERT INTO user (username, password, email, phone_number) VALUES (?, ?, ?, ?)",
+                    (username, generate_password_hash(password), email, phone_number),
                 )
                 db.commit()
             except db.IntegrityError:

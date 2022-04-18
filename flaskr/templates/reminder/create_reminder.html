@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block header %}
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('reminder.index') }}">Home</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{% block title %}{{page}}{% endblock %}</li>
+        </ol>
+    </nav>
+{% endblock %}
+
+{% block content %}
+    <div class="row p-4">
+        <div class="col-12 text-center h4 pb-2">{{page}}</div>
+        <form method="post">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="name-id" class="form-label">Name</label>
+                    <input type="text" class="form-control" id="name-id" name="name" value="{{reminder.name}}" required>
+                </div>
+
+                <div class="col-md-6">
+                    <label for="reminder_date-id" class="form-label">Reminder Date</label>
+                    <input type="text" class="form-control" id="reminder_date-id" name="reminder_date" value="{% if reminder %} {{reminder.reminder_date.strftime('%Y-%m-%d %H:%M')}} {% endif %}" placeholder="YYYY-MM-DD HH:MM" required>
+                </div>
+                <div class="col-md-6">
+                    <label for="repeat-id">Repeat</label>
+                    <select class="form-select" id="repeat-id" name="repeat" required>
+                    {% if reminder.repeat %}
+                        <option value="ONCE">Once</option>
+                        <option selected value="{{reminder.repeat}}">{{reminder.repeat|title}}</option>
+                    {% else %}
+                        <option selected disabled value="ONCE">Once</option>
+                    {% endif %}
+                        <option value="DAILY">Daily</option>
+                        <option value="WEEKLY">Weekly</option>
+                        <option value="MONTHLY">Monthly</option>
+                        <option value="YEARLY">Yearly</option>
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label for="description-id">Description</label>
+                    <textarea class="form-control" id="description-id" name="description" rows="5">{{reminder.description}}</textarea>
+                </div>
+
+            </div>
+            
+            <div class="form-group row mb-4">
+                <div class="col-md-6"> 
+                    <button type="submit" class="btn btn-primary">SUBMIT</button>
+                    {% if reminder.id %}
+                    <a href="{{ url_for('reminder.delete_reminder', id=reminder.id) }}" class="btn btn-danger">DELETE</a>
+                    {% endif %}
+                </div>
+            </div>
+        
+        </form>
+    </div>
+{% endblock %}
+
+

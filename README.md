@@ -14,6 +14,8 @@
 - view category reminder
 - view specific reminder
 - reminder notification
+	1. send SMS
+    2. send Email
 
 ## Requirements
 - python 3.8
