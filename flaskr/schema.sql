@@ -20,3 +20,14 @@ CREATE TABLE reminder (
     description TEXT,
     FOREIGN KEY (user_id) REFERENCES user (id)
 );
+
+
+CREATE TABLE history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    reminder_id INTEGER NOT NULL,
+    reminder_date TIMESTAMP NOT NULL,
+    created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES user (id),
+    FOREIGN KEY (reminder_id) REFERENCES reminder (id)
+);

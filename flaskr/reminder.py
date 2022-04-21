@@ -8,6 +8,8 @@ from flaskr.db import get_db
 
 bp = Blueprint('reminder', __name__)
 
+import datetime
+import json
 
 @bp.route('/')
 @login_required
@@ -35,14 +37,19 @@ def create_reminder():
         description = request.form.get('description', '[None]') 
         reminder_date = request.form.get('reminder_date', None)
 
-        if not name:
+        if name is None:
             error = 'Name is required.'
 
-        if not reminder_date:
+        if reminder_date is None:
             error = 'Reminder Date is required.'
+        else:
+            reminder_date = clean_datetime(reminder_date)
+            if reminder_date is None:
+                error = "Enter the Correct Date and Time format YYYY-MM-DD HH:MI"
+
 
         if error is not None:
-            flash(error)
+            flash("ERROR: {}".format(error))
         else:
             db = get_db()
             db.execute(
@@ -53,13 +60,13 @@ def create_reminder():
             db.commit()
             return redirect(url_for('reminder.index'))
 
-    return render_template('reminder/create_reminder.html', page="Create Note", reminder={})
+    return render_template('reminder/create_reminder.html', page="Create Reminder", reminder={})
 
 
 @bp.route('/reminder/<int:id>/update', methods=['POST', 'GET'])
 @login_required
 def update_reminder(id):
-    reminder = get_reminder()
+    reminder = get_reminder(id)
     if request.method == 'POST':
         # Get name, category_id, location, reminder_date, repeat, description
         name = request.form.get('name', None)
@@ -68,19 +75,23 @@ def update_reminder(id):
         reminder_date = request.form.get('reminder_date', None)
 
         error = None
-        if not name:
+        if name is None:
             error = 'Name is required.'
 
-        if not reminder_date:
+        if reminder_date is None:
             error = 'Reminder Date is required.'
+        else:
+            reminder_date = clean_datetime(reminder_date)
+            if reminder_date is None:
+                error = "Enter the Correct Date and Time format YYYY-MM-DD HH:MI"
 
 
         if error is not None:
-            flash(error)
+            flash("ERROR: {}".format(error))
         else:
             db = get_db()
             db.execute(
-                'UPDATE journal'
+                'UPDATE reminder'
                 ' SET name = ?, repeat = ?, description = ?, reminder_date = ?'
                 ' WHERE id = ?',
                 (name, repeat, description, reminder_date, id)
@@ -90,15 +101,8 @@ def update_reminder(id):
 
             return redirect(url_for('reminder.reminder', id=id))
 
-    return render_template('reminder/create_note.html', reminder=reminder, 
+    return render_template('reminder/create_reminder.html', reminder=reminder, 
         page="Update Reminder: {}".format(reminder['name']))
-
-
-@bp.route('/reminder/<int:id>/snooze')
-@login_required
-def snooze_reminder(id):
-    return render_template('reminder/index.html')
-
 
 
 @bp.route('/reminder/<int:id>/delete')
@@ -139,10 +143,10 @@ def calendar():
     db = get_db()
     # all Reminders
     reminders = db.execute(
-        'SELECT id, name, description, event_date, reminder_date'
+        'SELECT *'
         ' FROM reminder'
         ' WHERE user_id = ?'
-        ' ORDER BY event_date DESC',
+        ' ORDER BY reminder_date DESC',
         (g.user['id'],)
     ).fetchall()
     return render_template('reminder/calendar.html', reminders=reminders)
@@ -210,5 +214,83 @@ def get_reminder(id, check_user=True):
     elif check_user and reminder['user_id'] != g.user['id']:
         abort(403)
 
+    print(type(reminder['reminder_date']))
+
     return reminder
 
+
+@bp.route('/reminder/json')
+@login_required
+def get_event():
+    db = get_db()
+    # all Reminders
+    reminders = db.execute(
+        'SELECT *'
+        ' FROM reminder'
+        ' WHERE user_id = ?'
+        ' ORDER BY reminder_date DESC',
+        (g.user['id'],)
+    ).fetchall()
+
+    json_event = []
+
+    for reminder in reminders:
+        repeat = str(reminder['repeat']).strip() # ONCE, Daily, Weekly, Monthly, Yearly
+        date = reminder['reminder_date']
+        name = reminder['name']
+        id = int(reminder['id'])
+
+        duration = None
+
+        if repeat == 'DAILY':
+            duration = datetime.timedelta(days=1)
+        elif repeat == 'WEEKLY':
+            duration = datetime.timedelta(weeks=1)
+        elif repeat == 'MONTHLY':
+            duration = datetime.timedelta(months=1)
+        elif repeat == 'YEARLY':
+            duration = datetime.timedelta(days=365)
+
+        json_event.append({
+            'title': name, 'start': f"{date:%Y-%m-%dT%H:%M:%S}", 'url': url_for('reminder.reminder', id=id)
+        })
+
+        if duration is not None:
+            # Next 55 Events
+            for x in range(0, 56):
+                date = date + duration
+                json_event.append({
+                    'title': name, 'start': f"{date:%Y-%m-%dT%H:%M:%S}", 
+                    'url': url_for('reminder.reminder', id=id)
+                })
+
+    print(json_event)
+    return json.dumps(json_event)
+
+
+
+
+
+def clean_datetime(val):
+    try:
+        val = val.strip()
+        datepart, timepart = val.split(" ")
+        print(datepart)
+        print(timepart)
+        year, month, day = map(int, datepart.split("-"))
+        # hours, minutes, seconds = map(int, timepart.split(":"))
+        timelist = timepart.split(":")
+
+        hours, minutes, seconds, microseconds = 0, 0, 0, 0 
+        if len(timelist) == 3:
+            hours, minutes, seconds = map(int, timepart.split(":"))
+        elif len(timelist) == 2:
+            hours, minutes = map(int, timepart.split(":"))
+        elif len(timelist) == 1:
+            hours = map(int, timepart.split(":"))
+
+        val = datetime.datetime(year, month, day, hours, minutes, seconds, microseconds)
+        return f"{val:%Y-%m-%d %H:%M:%S}"
+
+    except Exception as e:
+        return None

@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block header %}
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('reminder.index') }}">Home</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{% block title %} {{reminder.name}} {% endblock %}</li>        
+        </ol>
+    </nav>
+{% endblock %}
+
+{% block content %}
+    <div class="row pt-2 pb-4">
+        <article class="blog-post pt-3">
+            <h2 class="blog-post-title">{{reminder.name}}</h2>
+            <p class="blog-post-meta"><b>Reminder Date:</b> {{ reminder.reminder_date.strftime('%A, %d %B %Y %I:%M %p') }}</p>
+            <p class="blog-post-meta"><strong>Repeat:</strong> {{ reminder.repeat|title }}</p>
+            <p class="lead">{{reminder.description}}</p>
+        </article>
+    </div>
+    <div class="row mb-4"> 
+        <div class="col-12">
+            <a href="{{ url_for('reminder.update_reminder', id=reminder.id) }}" class="btn btn-primary">EDIT</a>
+            <a href="{{ url_for('reminder.delete_reminder', id=reminder.id) }}" class="btn btn-danger">DELETE</a>
+        </div>
+    </div>
+{% endblock %}
