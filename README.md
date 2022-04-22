@@ -24,6 +24,8 @@
 - Twilio: A Python helper library that makes it easy to interact with the Twilio API.
 - python-dateutil: This library provides powerful extensions to the standard datetime module already provided by Python.
 - python-dotenv: A library for importing environment variables from a .env file.
+
+- Flask-APScheduler
 ## Initial 
 
 ## Run following Commands in shell to run the app.

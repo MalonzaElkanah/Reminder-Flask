@@ -41,4 +41,9 @@ def create_app(test_config=None):
     app.add_url_rule('/', endpoint='index')
 
 
+    # Initialize APScheduler extensions.
+    from .mylib import scheduler
+    scheduler.init_app(app)
+    scheduler.start()
+
     return app

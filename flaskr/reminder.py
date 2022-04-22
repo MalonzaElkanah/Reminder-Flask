@@ -4,12 +4,14 @@ from flask import (
 from werkzeug.exceptions import abort
 
 from flaskr.auth import login_required
-from flaskr.db import get_db
+from flaskr.db import get_db, get_schedule_db
 
 bp = Blueprint('reminder', __name__)
 
 import datetime
 import json
+
+from .mylib import scheduler, send_sms_reminder, send_email
 
 @bp.route('/')
 @login_required
@@ -115,16 +117,9 @@ def delete_reminder(id):
     return redirect(url_for('reminder.index')) 
 
 
-@bp.route('/reminder/<int:id>/repeat')
-@login_required
-def repeat_reminder(id):
-    # - repeat reminder (Daily, Weekly, Monthly, Yearly)
-    return render_template('reminder/index.html')  
-
-
 @bp.route('/reminder/all')
 @login_required
-def all_reminder():
+def my_reminders():
     db = get_db()
     # all Reminders
     reminders = db.execute(
@@ -152,35 +147,6 @@ def calendar():
     return render_template('reminder/calendar.html', reminders=reminders)
 
 
-@bp.route('/<int:id>/category/reminder')
-@login_required
-def category_reminder(id):
-    db = get_db()
-    category = get_db().execute(
-        'SELECT name, user_id FROM category WHERE id = ?',
-        (id,)
-    ).fetchone()
-
-    # check if category exists and belong to user
-    if category is None:
-        abort(404, f"Category doesn't exist.")
-    elif category['user_id'] != g.user['id']:
-        abort(403)    
-    else:
-        # all Reminders
-        reminders = db.execute(
-            'SELECT id, name, description, event_date, reminder_date'
-            ' FROM reminder'
-            ' WHERE user_id = ? AND category_id = ?'
-            ' ORDER BY event_date DESC',
-            (g.user['id'], id)
-        ).fetchall()
-
-    status = "Category: {} Notes".format(category['name'])
-
-    return render_template('reminder/index.html', reminders=reminders, page=status)
-
-
 @bp.route('/reminder/<int:id>/view')
 @login_required
 def reminder(id):
@@ -188,16 +154,23 @@ def reminder(id):
     return render_template('reminder/reminder.html', reminder=reminder)
 
 
-@bp.route('/reminder/<int:id>/notification')
-@login_required
 def notify_reminder(id):
-    '''
-    TODO
-    send SMS
-    send Email
-    send 
-    '''
-    pass 
+    # get reminder data
+    reminder = get_db().execute(
+        'SELECT r.name, r.description, u.email, u.phone_number '
+        ' FROM reminder r JOIN user u ON r.user_id = u.id '
+        ' WHERE r.id = ?',
+        (id,)
+    ).fetchone()
+    # send SMS Reminder
+    # send_sms_reminder(reminder)
+    
+    # send Email Reminder
+    send_email(reminder)
+
+    # update Reminder Date
+    if reminder['repeat'] != 'ONCE':
+        update_reminder_date(reminder)
 
 
 def get_reminder(id, check_user=True):
@@ -268,7 +241,33 @@ def get_event():
     return json.dumps(json_event)
 
 
+def update_reminder_date(reminder):
+    repeat = str(reminder['repeat']).strip() # ONCE, Daily, Weekly, Monthly, Yearly
+    date = reminder['reminder_date']
+    reminder_id = int(reminder['id'])
 
+    duration = None
+
+    if repeat == 'DAILY':
+        duration = datetime.timedelta(days=1)
+    elif repeat == 'WEEKLY':
+        duration = datetime.timedelta(weeks=1)
+    elif repeat == 'MONTHLY':
+        duration = datetime.timedelta(months=1)
+    elif repeat == 'YEARLY':
+        duration = datetime.timedelta(days=365)
+
+    if duration is not None:
+        date = date + duration
+        reminder_date =  f"{date:%Y-%m-%d %H:%M:%S}"
+        db = get_db()
+        db.execute(
+            'UPDATE reminder'
+            ' SET reminder_date = ?'
+            ' WHERE id = ?',
+            (reminder_date, reminder_id)
+        )
+        db.commit()
 
 
 def clean_datetime(val):
@@ -294,3 +293,36 @@ def clean_datetime(val):
 
     except Exception as e:
         return None
+
+def check_reminders_due(db):
+    reminders = db.execute(
+        'SELECT id, reminder_date FROM reminder ORDER BY reminder_date DESC'
+    ).fetchall()
+
+    for reminder in reminders:
+        reminder_date = reminder['reminder_date']
+        now = datetime.datetime.now()
+        print(reminder_date)
+        print(now)
+        if f"{reminder_date:%Y-%m-%d %H:%M}" == f"{now:%Y-%m-%d %H:%M}":
+            notify_reminder(int(reminder['id']))
+
+
+@scheduler.task(
+    "interval",
+    id="job_sync",
+    seconds=50,
+    max_instances=1,
+    start_date="2000-01-01 12:19:00",
+)
+def task():
+    """
+    Check Every 50 second if any reminder is scheduled.
+    Added when app starts.
+    """
+    print("Reminder check.")
+    with scheduler.app.app_context():
+        db = get_schedule_db(scheduler.app.config['DATABASE'])
+        check_reminders_due(db)
+
+

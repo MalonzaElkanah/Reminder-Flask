@@ -30,6 +30,13 @@ def init_db():
         db.executescript(f.read().decode('utf8'))
 
 
+def get_schedule_db(db_config):
+    db = sqlite3.connect(db_config, detect_types=sqlite3.PARSE_DECLTYPES)
+    db.row_factory = sqlite3.Row
+    return db
+
+
+
 @click.command('init-db')
 @with_appcontext
 def init_db_command():
