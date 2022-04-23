@@ -157,13 +157,13 @@ def reminder(id):
 def notify_reminder(id):
     # get reminder data
     reminder = get_db().execute(
-        'SELECT r.name, r.description, u.email, u.phone_number '
+        'SELECT r.id, r.name, r.description, r.repeat, r.reminder_date, u.email, u.phone_number '
         ' FROM reminder r JOIN user u ON r.user_id = u.id '
         ' WHERE r.id = ?',
         (id,)
     ).fetchone()
     # send SMS Reminder
-    # send_sms_reminder(reminder)
+    send_sms_reminder(reminder)
     
     # send Email Reminder
     send_email(reminder)
@@ -295,13 +295,19 @@ def clean_datetime(val):
         return None
 
 def check_reminders_due(db):
+    now = datetime.datetime.now()
+    duration = datetime.timedelta(hours=1)
+    time1 = now - duration
+    time2 = now + duration
     reminders = db.execute(
-        'SELECT id, reminder_date FROM reminder ORDER BY reminder_date DESC'
+        'SELECT id, reminder_date FROM reminder'
+        ' WHERE reminder_date BETWEEN ? AND ?'
+        ' ORDER BY reminder_date DESC',
+        (f"{time1:%Y-%m-%d %H:%M:%S}", f"{time2:%Y-%m-%d %H:%M:%S}")
     ).fetchall()
 
     for reminder in reminders:
         reminder_date = reminder['reminder_date']
-        now = datetime.datetime.now()
         print(reminder_date)
         print(now)
         if f"{reminder_date:%Y-%m-%d %H:%M}" == f"{now:%Y-%m-%d %H:%M}":
